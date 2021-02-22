@@ -48,6 +48,7 @@ public class ClassNode extends NotificationAttrNode implements ILoadable, ICodeN
 
 	private final RootNode root;
 	private final IClassData clsData;
+	private final NodeFactory nodeFactory;
 
 	private final ClassInfo clsInfo;
 	private AccessInfo accessFlags;
@@ -79,10 +80,11 @@ public class ClassNode extends NotificationAttrNode implements ILoadable, ICodeN
 	// cache maps
 	private Map<MethodInfo, MethodNode> mthInfoMap = Collections.emptyMap();
 
-	public ClassNode(RootNode root, IClassData cls) {
+	public ClassNode(RootNode root, IClassData cls, NodeFactory nodeFactory) {
 		this.root = root;
 		this.clsInfo = ClassInfo.fromType(root, ArgType.object(cls.getType()));
 		this.clsData = cls.copy();
+		this.nodeFactory = nodeFactory;
 		initialLoad(clsData);
 	}
 
@@ -103,8 +105,8 @@ public class ClassNode extends NotificationAttrNode implements ILoadable, ICodeN
 			methods = new ArrayList<>();
 			fields = new ArrayList<>();
 			cls.visitFieldsAndMethods(
-					fld -> fields.add(FieldNode.build(this, fld)),
-					mth -> methods.add(MethodNode.build(this, mth)));
+					fld -> fields.add(nodeFactory.createFieldNode(this, fld)),
+					mth -> methods.add(nodeFactory.createMethodNode(this, mth)));
 
 			AnnotationsList.attach(this, cls.getAnnotations());
 			loadStaticValues(cls, fields);
@@ -137,8 +139,8 @@ public class ClassNode extends NotificationAttrNode implements ILoadable, ICodeN
 		this.accessFlags = new AccessInfo(accFlagsValue, AFType.CLASS);
 	}
 
-	public static ClassNode addSyntheticClass(RootNode root, String name, int accessFlags) {
-		ClassNode cls = new ClassNode(root, name, accessFlags);
+	public static ClassNode addSyntheticClass(RootNode root, String name, int accessFlags, NodeFactory nodeFactory) {
+		ClassNode cls = nodeFactory.createClassNode(root, name, accessFlags);
 		cls.add(AFlag.SYNTHETIC);
 		cls.setState(ProcessState.PROCESS_COMPLETE);
 		root.addClassNode(cls);
@@ -146,10 +148,11 @@ public class ClassNode extends NotificationAttrNode implements ILoadable, ICodeN
 	}
 
 	// Create empty class
-	private ClassNode(RootNode root, String name, int accessFlags) {
+	ClassNode(RootNode root, String name, int accessFlags) {
 		this.root = root;
 		this.clsData = null;
 		this.clsInfo = ClassInfo.fromName(root, name);
+		this.nodeFactory = null;
 		this.interfaces = new ArrayList<>();
 		this.methods = new ArrayList<>();
 		this.fields = new ArrayList<>();

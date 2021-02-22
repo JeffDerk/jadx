@@ -48,6 +48,7 @@ public class RootNode {
 	private static final Logger LOG = LoggerFactory.getLogger(RootNode.class);
 
 	private final JadxArgs args;
+	private final NodeFactory nodeFactory;
 	private final List<IDexTreeVisitor> preDecompilePasses;
 	private final List<IDexTreeVisitor> passes;
 
@@ -72,7 +73,12 @@ public class RootNode {
 	private ClassNode appResClass;
 
 	public RootNode(JadxArgs args) {
+		this(args, new NodeFactory());
+	}
+
+	public RootNode(JadxArgs args, NodeFactory nodeFactory) {
 		this.args = args;
+		this.nodeFactory = nodeFactory;
 		this.preDecompilePasses = Jadx.getPreDecompilePassesList();
 		this.passes = Jadx.getPassesList(args);
 		this.stringUtils = new StringUtils(args);
@@ -87,7 +93,7 @@ public class RootNode {
 		for (ILoadResult loadedInput : loadedInputs) {
 			loadedInput.visitClasses(cls -> {
 				try {
-					addClassNode(new ClassNode(RootNode.this, cls));
+					addClassNode(nodeFactory.createClassNode(RootNode.this, cls));
 				} catch (Exception e) {
 					addDummyClass(cls, e);
 				}
@@ -125,7 +131,7 @@ public class RootNode {
 		if (name == null || name.isEmpty()) {
 			name = "CLASS_" + typeStr;
 		}
-		ClassNode clsNode = ClassNode.addSyntheticClass(this, name, classData.getAccessFlags());
+		ClassNode clsNode = ClassNode.addSyntheticClass(this, name, classData.getAccessFlags(), nodeFactory);
 		ErrorsCounter.error(clsNode, "Load error", exc);
 	}
 
@@ -491,5 +497,9 @@ public class RootNode {
 
 	public TypeUtils getTypeUtils() {
 		return typeUtils;
+	}
+
+	public NodeFactory getNodeFactory() {
+		return nodeFactory;
 	}
 }

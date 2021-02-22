@@ -71,6 +71,7 @@ public final class JadxDecompiler implements Closeable {
 	private final JadxPluginManager pluginManager = new JadxPluginManager();
 	private final List<ILoadResult> loadedInputs = new ArrayList<>();
 
+	private final NodeFactory nodeFactory;
 	private RootNode root;
 	private List<JavaClass> classes;
 	private List<ResourceFile> resources;
@@ -87,6 +88,7 @@ public final class JadxDecompiler implements Closeable {
 
 	public JadxDecompiler(JadxArgs args) {
 		this.args = args;
+		this.nodeFactory = new NodeFactory();
 	}
 
 	public void load() {
@@ -95,12 +97,16 @@ public final class JadxDecompiler implements Closeable {
 		LOG.info("loading ...");
 		loadInputFiles();
 
-		root = new RootNode(args);
+		root = getNodeFactory().createRootNode(args);
 		root.loadClasses(loadedInputs);
 		root.initClassPath();
 		root.loadResources(getResources());
 		root.runPreDecompileStage();
 		root.initPasses();
+	}
+
+	protected NodeFactory getNodeFactory() {
+		return nodeFactory;
 	}
 
 	private void loadInputFiles() {
